@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ShieldCheck, Package, ClipboardList, Tag, Settings, Plus, Trash2, Edit3,
-  CheckCircle2, Clock, Truck, XCircle, LogOut, RotateCcw, KeyRound, MessageCircle, Search
+  CheckCircle2, Clock, Truck, XCircle, LogOut, RotateCcw, KeyRound, MessageCircle, Search, Upload
 } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { useCart, useHydrated, OrderStatus } from '@/lib/cart'
@@ -61,6 +61,7 @@ export default function AdminPage() {
   const [pImg, setPImg] = useState(IMAGE_PRESETS[0])
   const [pDesc, setPDesc] = useState('')
   const [pBest, setPBest] = useState(false)
+  const [uploadingImg, setUploadingImg] = useState(false)
 
   // Promo form state
   const [promoCode, setPromoCode] = useState('')
@@ -159,6 +160,45 @@ export default function AdminPage() {
     setPDesc(p.desc)
     setPBest(Boolean(p.best))
     setProdModal(true)
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 4 * 1024 * 1024) {
+      showToast('Ukuran gambar maksimal 4 MB', 'error')
+      return
+    }
+
+    setUploadingImg(true)
+    try {
+      if (cloudEnabled) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const res = await fetch('/api/upload', { method: 'POST', body: fd })
+        const data = await res.json().catch(() => ({}))
+        if (res.ok && data.url) {
+          setPImg(data.url)
+          showToast('Foto produk berhasil di-upload!')
+          return
+        }
+        showToast(data.error || 'Gagal upload ke cloud', 'error')
+        return
+      }
+
+      // Local fallback: convert to data URL
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setPImg(reader.result)
+          showToast('Foto produk dipilih!')
+        }
+      }
+      reader.readAsDataURL(file)
+    } finally {
+      setUploadingImg(false)
+      e.target.value = ''
+    }
   }
 
   const saveProduct = (e: React.FormEvent) => {
@@ -731,12 +771,33 @@ export default function AdminPage() {
                   <input type="number" className="input" value={pStock} onChange={(e) => setPStock(e.target.value)} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-mute">Gambar Produk</label>
-                  <select className="input" value={pImg} onChange={(e) => setPImg(e.target.value)}>
+                  <label className="mb-1 block text-xs font-bold text-mute">Preset Gambar</label>
+                  <select
+                    className="input"
+                    value={IMAGE_PRESETS.includes(pImg) ? pImg : ''}
+                    onChange={(e) => e.target.value && setPImg(e.target.value)}
+                  >
+                    {!IMAGE_PRESETS.includes(pImg) && <option value="">Foto custom (upload/URL)</option>}
                     {IMAGE_PRESETS.map((img) => (
                       <option key={img} value={img}>{img.split('/').pop()}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-2xl border border-line bg-bg/50 p-3">
+                <img src={pImg} alt="Preview" className="h-14 w-14 shrink-0 rounded-xl border border-line object-cover" />
+                <div className="flex-1 space-y-1.5">
+                  <label className="btn btn-line !py-1.5 !px-3 cursor-pointer text-xs">
+                    <Upload className="h-3.5 w-3.5 text-brand" />
+                    {uploadingImg ? 'Mengupload...' : 'Upload Foto (PNG / JPG)'}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleImageUpload} disabled={uploadingImg} />
+                  </label>
+                  <input
+                    className="input !py-1 text-xs"
+                    placeholder="Atau tempel URL gambar..."
+                    value={pImg}
+                    onChange={(e) => setPImg(e.target.value)}
+                  />
                 </div>
               </div>
               <div>
