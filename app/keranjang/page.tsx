@@ -13,7 +13,7 @@ import RoleModal from '@/components/RoleModal'
 export default function Keranjang() {
   const hydrated = useHydrated()
   const { lines, orders, setQty, remove, clear, addOrder } = useCart()
-  const { products, promos, shop, userProfile, updateProduct } = useStore()
+  const { products, promos, shop, role, userProfile, updateProduct } = useStore()
   const showToast = useToast((s) => s.show)
 
   const [name, setName] = useState('')
@@ -28,7 +28,7 @@ export default function Keranjang() {
   const [sent, setSent] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
 
-  const isLoggedIn = Boolean(userProfile.customerId || userProfile.phone)
+  const isLoggedIn = role === 'admin' || Boolean(userProfile.customerId || userProfile.phone)
 
   useEffect(() => {
     if (hydrated && isLoggedIn) {

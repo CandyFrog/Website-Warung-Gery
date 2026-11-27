@@ -15,18 +15,56 @@ export async function POST(req: NextRequest) {
   if (body.action === 'admin_login') {
     const pin = String(body.pin ?? '').trim()
     let expectedPin = process.env.ADMIN_PIN || '1234'
+    let shopPhone = '088905601902'
+    let shopName = 'Warung Gery'
 
     if (sb) {
-      const { data } = await sb.from('shop_settings').select('admin_pin').eq('id', 1).maybeSingle()
+      const { data } = await sb.from('shop_settings').select('admin_pin, wa, wa_label, name').eq('id', 1).maybeSingle()
       if (data?.admin_pin) expectedPin = data.admin_pin
+      if (data?.wa_label || data?.wa) shopPhone = (data.wa_label || data.wa).replace(/\D/g, '')
+      if (data?.name) shopName = data.name
     }
 
     if (pin !== expectedPin) {
       return NextResponse.json({ error: 'PIN Admin salah.' }, { status: 401 })
     }
 
-    const res = NextResponse.json({ ok: true, role: 'admin' })
-    setSessionCookie(res, { role: 'admin' })
+    let adminCustomerId: string | undefined
+    if (sb) {
+      const { data: existingAdmin } = await sb
+        .from('customers')
+        .select('id, username, name, phone, address')
+        .eq('username', 'administrator')
+        .maybeSingle()
+
+      if (existingAdmin) {
+        adminCustomerId = existingAdmin.id
+      } else {
+        const { data: createdAdmin } = await sb
+          .from('customers')
+          .insert({
+            username: 'administrator',
+            name: 'Administrator',
+            phone: shopPhone,
+            address: shopName,
+            pin_hash: hashPin(expectedPin),
+          })
+          .select('id')
+          .single()
+        adminCustomerId = createdAdmin?.id
+      }
+    }
+
+    const sessionData = {
+      role: 'admin' as const,
+      customerId: adminCustomerId,
+      username: 'administrator',
+      name: 'Administrator',
+      phone: shopPhone,
+      address: shopName,
+    }
+    const res = NextResponse.json({ ok: true, role: 'admin', session: sessionData })
+    setSessionCookie(res, sessionData)
     return res
   }
 

@@ -117,15 +117,20 @@ export const useStore = create<StoreState>()(
           } else {
             nextState.role = 'user'
           }
-          if (data.session?.role === 'admin') {
-            nextState.userProfile = { name: '', phone: '', address: '' }
-          } else if (data.session?.customerId || data.session?.phone) {
+          if (data.session?.customerId || data.session?.phone) {
             nextState.userProfile = {
               customerId: data.session.customerId,
               username: data.session.username || '',
               name: data.session.name || '',
               phone: data.session.phone || '',
               address: data.session.address || '',
+            }
+          } else if (data.session?.role === 'admin') {
+            nextState.userProfile = {
+              username: 'administrator',
+              name: 'Administrator',
+              phone: data.shop?.wa || '088905601902',
+              address: data.shop?.name || 'Warung Gery',
             }
           }
           if (Array.isArray(data.products) && data.products.length > 0) {
@@ -156,13 +161,29 @@ export const useStore = create<StoreState>()(
           })
           const data = await res.json().catch(() => ({}))
           if (!res.ok) return { ok: false, error: data.error || 'PIN Admin salah.' }
-          set({ role: 'admin', userProfile: { name: '', phone: '', address: '' } })
+          set({
+            role: 'admin',
+            userProfile: data.session || {
+              username: 'administrator',
+              name: 'Administrator',
+              phone: get().shop.wa || '088905601902',
+              address: get().shop.name || 'Warung Gery',
+            },
+          })
           await get().syncBootstrap()
           return { ok: true }
         }
 
         if (pin.trim() === get().adminPin) {
-          set({ role: 'admin', userProfile: { name: '', phone: '', address: '' } })
+          set({
+            role: 'admin',
+            userProfile: {
+              username: 'administrator',
+              name: 'Administrator',
+              phone: get().shop.wa || '088905601902',
+              address: get().shop.name || 'Warung Gery',
+            },
+          })
           return { ok: true }
         }
         return { ok: false, error: 'PIN salah. Coba lagi (default demo: 1234).' }
