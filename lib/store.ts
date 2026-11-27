@@ -117,7 +117,9 @@ export const useStore = create<StoreState>()(
           } else {
             nextState.role = 'user'
           }
-          if (data.session?.customerId || data.session?.phone) {
+          if (data.session?.role === 'admin') {
+            nextState.userProfile = { name: '', phone: '', address: '' }
+          } else if (data.session?.customerId || data.session?.phone) {
             nextState.userProfile = {
               customerId: data.session.customerId,
               username: data.session.username || '',
@@ -154,13 +156,13 @@ export const useStore = create<StoreState>()(
           })
           const data = await res.json().catch(() => ({}))
           if (!res.ok) return { ok: false, error: data.error || 'PIN Admin salah.' }
-          set({ role: 'admin' })
+          set({ role: 'admin', userProfile: { name: '', phone: '', address: '' } })
           await get().syncBootstrap()
           return { ok: true }
         }
 
         if (pin.trim() === get().adminPin) {
-          set({ role: 'admin' })
+          set({ role: 'admin', userProfile: { name: '', phone: '', address: '' } })
           return { ok: true }
         }
         return { ok: false, error: 'PIN salah. Coba lagi (default demo: 1234).' }

@@ -42,10 +42,12 @@ export default function RoleModal({ open, onClose, initialTab = 'user' }: Props)
   const [loading, setLoading] = useState(false)
 
   const isUserLoggedIn = role === 'user' && Boolean(userProfile.customerId || userProfile.phone)
+  const isAdminLoggedIn = role === 'admin'
+  const showRoleTabs = !isUserLoggedIn && !isAdminLoggedIn
 
   useEffect(() => {
     if (open) {
-      setTab(role === 'admin' ? 'admin' : initialTab)
+      setTab(isAdminLoggedIn ? 'admin' : isUserLoggedIn ? 'user' : initialTab)
       setEditingProfile(false)
       setIdentifier('')
       setLoginPin('')
@@ -144,26 +146,28 @@ export default function RoleModal({ open, onClose, initialTab = 'user' }: Props)
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 border-b border-line bg-bg/50 p-2">
-              <button
-                type="button"
-                onClick={() => setTab('user')}
-                className={`flex items-center justify-center gap-2 rounded-2xl py-2 text-sm font-bold transition-all ${
-                  tab === 'user' ? 'bg-card text-brand shadow-sm' : 'text-mute hover:text-ink'
-                }`}
-              >
-                <User className="h-4 w-4" /> Pelanggan
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab('admin')}
-                className={`flex items-center justify-center gap-2 rounded-2xl py-2 text-sm font-bold transition-all ${
-                  tab === 'admin' ? 'bg-card text-brand shadow-sm' : 'text-mute hover:text-ink'
-                }`}
-              >
-                <ShieldCheck className="h-4 w-4" /> Admin Warung
-              </button>
-            </div>
+            {showRoleTabs && (
+              <div className="grid grid-cols-2 gap-2 border-b border-line bg-bg/50 p-2">
+                <button
+                  type="button"
+                  onClick={() => setTab('user')}
+                  className={`flex items-center justify-center gap-2 rounded-2xl py-2 text-sm font-bold transition-all ${
+                    tab === 'user' ? 'bg-card text-brand shadow-sm' : 'text-mute hover:text-ink'
+                  }`}
+                >
+                  <User className="h-4 w-4" /> Pelanggan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTab('admin')}
+                  className={`flex items-center justify-center gap-2 rounded-2xl py-2 text-sm font-bold transition-all ${
+                    tab === 'admin' ? 'bg-card text-brand shadow-sm' : 'text-mute hover:text-ink'
+                  }`}
+                >
+                  <ShieldCheck className="h-4 w-4" /> Admin Warung
+                </button>
+              </div>
+            )}
 
             <div className="p-5">
               {tab === 'user' ? (
@@ -318,8 +322,8 @@ export default function RoleModal({ open, onClose, initialTab = 'user' }: Props)
                     <ShieldCheck className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="font-display text-lg font-bold">Mode Admin Aktif</p>
-                    <p className="text-sm text-mute">Kamu sedang login sebagai pengelola Warung Gery.</p>
+                    <p className="font-display text-lg font-extrabold">Administrator / Owner Warung</p>
+                    <p className="mt-0.5 text-xs text-mute">Sesi pengelola Warung Gery sedang aktif.</p>
                   </div>
                   <div className="flex flex-col gap-2">
                     <button
@@ -333,7 +337,7 @@ export default function RoleModal({ open, onClose, initialTab = 'user' }: Props)
                       Buka Dashboard Admin
                     </button>
                     <button type="button" onClick={handleLogout} className="btn btn-line w-full text-sale">
-                      <LogOut className="h-4 w-4" /> Keluar ke Mode Pelanggan
+                      <LogOut className="h-4 w-4" /> Keluar Admin
                     </button>
                   </div>
                 </div>
