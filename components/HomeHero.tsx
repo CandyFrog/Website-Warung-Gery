@@ -12,7 +12,9 @@ export default function HomeHero() {
   const { shop, promos } = useStore()
   const showToast = useToast((s) => s.show)
 
-  const activePromos = hydrated ? promos.filter((p) => p.active) : []
+  const showPromos = hydrated && shop.showBannerPromos !== false
+  const maxPromos = Math.max(0, shop.maxBannerPromos ?? 2)
+  const activePromos = showPromos ? promos.filter((p) => p.active).slice(0, maxPromos) : []
 
   const copyCode = (code: string) => {
     navigator.clipboard?.writeText(code)

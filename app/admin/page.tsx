@@ -698,6 +698,29 @@ export default function AdminPage() {
               <label className="mb-1 block text-xs font-bold text-mute">Banner Pengumuman (tampil di halaman utama)</label>
               <input className="input" value={shop.announcement} onChange={(e) => updateShop({ announcement: e.target.value })} />
             </div>
+            <div className="grid gap-3 rounded-2xl border border-line bg-bg/50 p-3.5 sm:grid-cols-2 sm:items-center">
+              <label className="flex cursor-pointer items-center gap-2.5 text-sm font-bold">
+                <input
+                  type="checkbox"
+                  checked={shop.showBannerPromos !== false}
+                  onChange={(e) => updateShop({ showBannerPromos: e.target.checked })}
+                  className="h-4 w-4 accent-brand"
+                />
+                Tampilkan kode promo di banner
+              </label>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-mute">Maksimal kode di banner</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={10}
+                  disabled={shop.showBannerPromos === false}
+                  className="input !py-1.5"
+                  value={shop.maxBannerPromos ?? 2}
+                  onChange={(e) => updateShop({ maxBannerPromos: Math.max(0, Number(e.target.value) || 0) })}
+                />
+              </div>
+            </div>
             <div className="border-t border-line pt-4">
               <label className="mb-1 block text-xs font-bold text-mute">Ubah PIN Admin</label>
               <div className="flex gap-2">

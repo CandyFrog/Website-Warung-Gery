@@ -12,6 +12,25 @@ export async function POST(req: NextRequest) {
   }
 
   const o = await req.json()
+
+  if (o.promo) {
+    const promoCode = String(o.promo).trim().toUpperCase()
+    const q = sb
+      .from('orders')
+      .select('id')
+      .eq('promo', promoCode)
+      .neq('status', 'batal')
+    const { data: used } = session.customerId
+      ? await q.eq('customer_id', session.customerId).limit(1)
+      : await q.eq('phone', o.phone).limit(1)
+    if (used && used.length > 0) {
+      return NextResponse.json(
+        { error: `Kode promo ${promoCode} sudah pernah kamu gunakan.` },
+        { status: 400 }
+      )
+    }
+  }
+
   const { data, error } = await sb
     .from('orders')
     .insert({

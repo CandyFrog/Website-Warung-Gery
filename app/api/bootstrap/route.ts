@@ -51,6 +51,8 @@ export async function GET(req: NextRequest) {
         freeShippingMin: shopRow.free_shipping_min,
         shippingFee: shopRow.shipping_fee,
         announcement: shopRow.announcement,
+        showBannerPromos: shopRow.show_banner_promos ?? true,
+        maxBannerPromos: shopRow.max_banner_promos ?? 2,
         manualStatus: shopRow.manual_status,
       }
     : null

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Tag, Trash2, CheckCircle2, ShoppingBag, LogIn } from 'lucide-react'
+import { Trash2, CheckCircle2, ShoppingBag, LogIn } from 'lucide-react'
 import { useCart, useHydrated, Order } from '@/lib/cart'
 import { useStore } from '@/lib/store'
 import { rupiah } from '@/lib/format'
@@ -12,7 +12,7 @@ import RoleModal from '@/components/RoleModal'
 
 export default function Keranjang() {
   const hydrated = useHydrated()
-  const { lines, setQty, remove, clear, addOrder } = useCart()
+  const { lines, orders, setQty, remove, clear, addOrder } = useCart()
   const { products, promos, shop, userProfile, updateProduct } = useStore()
   const showToast = useToast((s) => s.show)
 
@@ -85,6 +85,12 @@ export default function Keranjang() {
 
   const applyPromo = (codeOverride?: string) => {
     const code = (codeOverride ?? promoInput).trim().toUpperCase()
+    const alreadyUsed = orders.some((o) => o.promo === code && (o.status ?? 'menunggu') !== 'batal')
+    if (alreadyUsed) {
+      setPromo(null)
+      setPromoMsg(`Kode promo ${code} sudah pernah kamu gunakan`)
+      return
+    }
     const found = activePromos.find((p) => p.code === code)
     if (found) {
       setPromo({ code: found.code, discount: found.discount })
@@ -199,20 +205,6 @@ export default function Keranjang() {
             <input className="input uppercase" placeholder="Kode promo" value={promoInput} onChange={(e) => setPromoInput(e.target.value)} />
             <button className="btn btn-line" onClick={() => applyPromo()}>Pakai</button>
           </div>
-          {activePromos.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {activePromos.map((pr) => (
-                <button
-                  key={pr.code}
-                  type="button"
-                  onClick={() => applyPromo(pr.code)}
-                  className="inline-flex items-center gap-1 rounded-full border border-tag/50 bg-tag/20 px-2.5 py-0.5 text-[11px] font-bold text-tagink dark:text-tag hover:bg-tag/30"
-                >
-                  <Tag className="h-3 w-3" /> {pr.code} (−{Math.round(pr.discount * 100)}%)
-                </button>
-              ))}
-            </div>
-          )}
           {promoMsg && <p className={`text-xs font-bold ${promo ? 'text-brand' : 'text-sale'}`}>{promoMsg}</p>}
         </div>
 

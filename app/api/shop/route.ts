@@ -18,6 +18,8 @@ export async function PATCH(req: NextRequest) {
   if (body.freeShippingMin !== undefined) patch.free_shipping_min = Number(body.freeShippingMin)
   if (body.shippingFee !== undefined) patch.shipping_fee = Number(body.shippingFee)
   if (body.announcement !== undefined) patch.announcement = body.announcement
+  if (body.showBannerPromos !== undefined) patch.show_banner_promos = Boolean(body.showBannerPromos)
+  if (body.maxBannerPromos !== undefined) patch.max_banner_promos = Math.max(0, Number(body.maxBannerPromos) || 0)
   if (body.manualStatus !== undefined) patch.manual_status = body.manualStatus
   if (body.adminPin !== undefined && String(body.adminPin).trim().length >= 4) {
     patch.admin_pin = String(body.adminPin).trim()

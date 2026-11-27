@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS shop_settings (
   free_shipping_min INTEGER NOT NULL DEFAULT 100000,
   shipping_fee INTEGER NOT NULL DEFAULT 5000,
   announcement TEXT NOT NULL DEFAULT 'Gratis ongkir belanja mulai Rp100.000! Pakai kode GERY10 untuk diskon 10%.',
+  show_banner_promos BOOLEAN NOT NULL DEFAULT true,
+  max_banner_promos INTEGER NOT NULL DEFAULT 2,
   manual_status TEXT NOT NULL DEFAULT 'auto',
   admin_pin TEXT NOT NULL DEFAULT '1234'
 );

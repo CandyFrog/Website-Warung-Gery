@@ -30,6 +30,8 @@ export type ShopSettings = {
   freeShippingMin: number
   shippingFee: number
   announcement: string
+  showBannerPromos: boolean
+  maxBannerPromos: number
   manualStatus: 'auto' | 'open' | 'closed'
 }
 
@@ -76,6 +78,8 @@ const seededPromos: Promo[] = Object.entries(PROMOS).map(([code, discount]) => (
 const seededShop: ShopSettings = {
   ...SHOP,
   announcement: 'Gratis ongkir belanja mulai Rp100.000! Pakai kode GERY10 untuk diskon 10%.',
+  showBannerPromos: true,
+  maxBannerPromos: 2,
   manualStatus: 'auto',
 }
 
