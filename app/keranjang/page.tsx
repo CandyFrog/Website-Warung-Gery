@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Tag, Trash2, CheckCircle2, ShoppingBag } from 'lucide-react'
+import { Tag, Trash2, CheckCircle2, ShoppingBag, LogIn } from 'lucide-react'
 import { useCart, useHydrated, Order } from '@/lib/cart'
 import { useStore } from '@/lib/store'
 import { rupiah } from '@/lib/format'
 import { waLink } from '@/lib/wa'
 import { useToast } from '@/lib/toast'
+import RoleModal from '@/components/RoleModal'
 
 export default function Keranjang() {
   const hydrated = useHydrated()
@@ -25,15 +26,17 @@ export default function Keranjang() {
   const [promoMsg, setPromoMsg] = useState('')
   const [errors, setErrors] = useState<string[]>([])
   const [sent, setSent] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
+
+  const isLoggedIn = Boolean(userProfile.customerId || userProfile.phone)
 
   useEffect(() => {
-    if (hydrated) {
-      if (userProfile.name && !name) setName(userProfile.name)
-      if (userProfile.phone && !phone) setPhone(userProfile.phone)
-      if (userProfile.address && !address) setAddress(userProfile.address)
+    if (hydrated && isLoggedIn) {
+      if (userProfile.name) setName(userProfile.name)
+      if (userProfile.phone) setPhone(userProfile.phone)
+      if (userProfile.address) setAddress(userProfile.address)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated])
+  }, [hydrated, isLoggedIn, userProfile.name, userProfile.phone, userProfile.address])
 
   if (!hydrated) return null
 
@@ -95,6 +98,11 @@ export default function Keranjang() {
   }
 
   const submit = () => {
+    if (!isLoggedIn) {
+      showToast('Silakan masuk atau daftar akun dulu untuk checkout', 'info')
+      setLoginOpen(true)
+      return
+    }
     const e: string[] = []
     if (!name.trim()) e.push('Nama belum diisi')
     if (phone.replace(/\D/g, '').length < 9) e.push('Nomor HP minimal 9 digit')
@@ -226,8 +234,22 @@ export default function Keranjang() {
             {errors.map((e) => <li key={e}>{e}</li>)}
           </ul>
         )}
-        <button className="btn btn-brand w-full" onClick={submit}>Pesan lewat WhatsApp</button>
+        {!isLoggedIn && (
+          <div className="rounded-2xl border border-tag/40 bg-tag/15 p-3 text-xs font-semibold text-tagink dark:text-tag">
+            Kamu belum masuk akun. Silakan masuk atau daftar dulu supaya pesananmu tersimpan di riwayat.
+          </div>
+        )}
+        <button className="btn btn-brand w-full" onClick={submit}>
+          {!isLoggedIn ? (
+            <>
+              <LogIn className="h-4 w-4" /> Masuk / Daftar untuk Checkout
+            </>
+          ) : (
+            'Pesan lewat WhatsApp'
+          )}
+        </button>
       </section>
+      <RoleModal open={loginOpen} onClose={() => setLoginOpen(false)} />
     </div>
   )
 }

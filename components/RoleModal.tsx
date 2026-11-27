@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ShieldCheck, User, X, LogOut, KeyRound, Check } from 'lucide-react'
+import { ShieldCheck, User, X, LogOut, KeyRound, Check, UserPlus, LogIn, Edit3 } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { useToast } from '@/lib/toast'
 
@@ -14,49 +14,83 @@ type Props = {
 
 export default function RoleModal({ open, onClose, initialTab = 'user' }: Props) {
   const router = useRouter()
-  const { role, cloudEnabled, userProfile, loginCustomer, loginAdmin, logout } = useStore()
+  const {
+    role, cloudEnabled, userProfile,
+    loginCustomerAccount, registerCustomerAccount, updateCustomerProfile,
+    loginAdmin, logout,
+  } = useStore()
   const showToast = useToast((s) => s.show)
 
   const [tab, setTab] = useState<'user' | 'admin'>(initialTab)
-  const [name, setName] = useState(userProfile.name)
-  const [phone, setPhone] = useState(userProfile.phone)
-  const [address, setAddress] = useState(userProfile.address)
-  const [userPin, setUserPin] = useState('')
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [editingProfile, setEditingProfile] = useState(false)
+
+  // Login state
+  const [identifier, setIdentifier] = useState('')
+  const [loginPin, setLoginPin] = useState('')
+
+  // Register & Edit state
+  const [username, setUsername] = useState('')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [regPin, setRegPin] = useState('')
+
   const [userErr, setUserErr] = useState('')
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const isUserLoggedIn = role === 'user' && Boolean(userProfile.customerId || userProfile.phone)
+
   useEffect(() => {
     if (open) {
       setTab(role === 'admin' ? 'admin' : initialTab)
-      setName(userProfile.name)
-      setPhone(userProfile.phone)
-      setAddress(userProfile.address)
-      setUserPin('')
+      setEditingProfile(false)
+      setIdentifier('')
+      setLoginPin('')
+      setUsername('')
+      setName(userProfile.name || '')
+      setPhone(userProfile.phone || '')
+      setAddress(userProfile.address || '')
+      setRegPin('')
       setUserErr('')
       setPin('')
       setPinError('')
     }
   }, [open, initialTab, role, userProfile])
 
-  const saveUser = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setUserErr('')
     setLoading(true)
-    const res = await loginCustomer({
-      name: name.trim(),
-      phone: phone.trim(),
-      address: address.trim(),
-      pin: userPin.trim() || '1234',
-    })
+    const res = await loginCustomerAccount({ identifier, pin: loginPin })
     setLoading(false)
-    if (!res.ok) {
-      setUserErr(res.error || 'Gagal menyimpan akun.')
-      return
-    }
-    showToast('Akun pelanggan aktif & tersinkron!')
+    if (!res.ok) return setUserErr(res.error || 'Gagal masuk.')
+    showToast('Berhasil masuk ke akun!')
     onClose()
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setUserErr('')
+    setLoading(true)
+    const res = await registerCustomerAccount({ username, name, phone, address, pin: regPin })
+    setLoading(false)
+    if (!res.ok) return setUserErr(res.error || 'Gagal mendaftar.')
+    showToast('Akun berhasil dibuat & langsung masuk!')
+    onClose()
+  }
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setUserErr('')
+    setLoading(true)
+    const res = await updateCustomerProfile({ name, address })
+    setLoading(false)
+    if (!res.ok) return setUserErr(res.error || 'Gagal menyimpan profil.')
+    showToast('Profil diperbarui!')
+    setEditingProfile(false)
   }
 
   const handleAdminLogin = async (e: React.FormEvent) => {
@@ -133,48 +167,151 @@ export default function RoleModal({ open, onClose, initialTab = 'user' }: Props)
 
             <div className="p-5">
               {tab === 'user' ? (
-                <form onSubmit={saveUser} className="space-y-3">
-                  <p className="text-xs text-mute">
-                    {cloudEnabled
-                      ? 'Masuk atau daftar dengan No. HP & PIN supaya profil dan riwayat pesananmu tersinkron di semua HP.'
-                      : 'Simpan data diri biar pas checkout di keranjang nggak perlu ketik ulang.'}
-                  </p>
-                  <div>
-                    <label className="mb-1 block text-xs font-bold text-mute">Nama lengkap</label>
-                    <input className="input" placeholder="Misal: Budi Santoso" value={name} onChange={(e) => setName(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-bold text-mute">No. HP / WhatsApp</label>
-                    <input className="input" placeholder="08xxxxxxxxxx" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-bold text-mute">Alamat rumah (opsional)</label>
-                    <input className="input" placeholder="Jl. Melati No. 12, RT 02" value={address} onChange={(e) => setAddress(e.target.value)} />
-                  </div>
-                  {cloudEnabled && (
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-mute">PIN Akun (min. 4 digit)</label>
-                      <input
-                        type="password"
-                        inputMode="numeric"
-                        className="input"
-                        placeholder="Buat atau masukkan PIN akunmu"
-                        value={userPin}
-                        onChange={(e) => setUserPin(e.target.value)}
-                        required
-                      />
+                isUserLoggedIn ? (
+                  editingProfile ? (
+                    <form onSubmit={handleSaveProfile} className="space-y-3">
+                      <p className="font-display text-base font-extrabold">Edit Profil</p>
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-mute">Nama lengkap</label>
+                        <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-mute">Alamat rumah</label>
+                        <input className="input" placeholder="Jl. Melati No. 12, RT 02" value={address} onChange={(e) => setAddress(e.target.value)} />
+                      </div>
+                      {userErr && <p className="text-xs font-bold text-sale">{userErr}</p>}
+                      <div className="flex gap-2 pt-1">
+                        <button type="button" onClick={() => setEditingProfile(false)} className="btn btn-line flex-1">
+                          Batal
+                        </button>
+                        <button type="submit" disabled={loading} className="btn btn-brand flex-1">
+                          <Check className="h-4 w-4" /> {loading ? 'Menyimpan...' : 'Simpan'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 rounded-2xl border border-line bg-bg/60 p-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand/15 text-brand">
+                          <User className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-display text-base font-extrabold">{userProfile.name || 'Pelanggan'}</p>
+                          {userProfile.username && (
+                            <p className="text-xs font-bold text-brand">@{userProfile.username}</p>
+                          )}
+                          <p className="text-xs text-mute">{userProfile.phone}</p>
+                          {userProfile.address && <p className="mt-0.5 truncate text-xs text-mute">{userProfile.address}</p>}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <button type="button" onClick={() => setEditingProfile(true)} className="btn btn-line w-full text-sm">
+                          <Edit3 className="h-4 w-4 text-brand" /> Edit Nama / Alamat
+                        </button>
+                        <button type="button" onClick={handleLogout} className="btn btn-line w-full text-sm text-sale">
+                          <LogOut className="h-4 w-4" /> Keluar Akun
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  {userErr && <p className="text-xs font-bold text-sale">{userErr}</p>}
-                  <button type="submit" disabled={loading} className="btn btn-brand mt-2 w-full">
-                    <Check className="h-4 w-4" /> {loading ? 'Menyimpan...' : 'Masuk / Simpan Profil'}
-                  </button>
-                  {userProfile.phone && (
-                    <button type="button" onClick={handleLogout} className="btn btn-line w-full text-xs text-sale">
-                      <LogOut className="h-3.5 w-3.5" /> Keluar Akun Pelanggan
-                    </button>
-                  )}
-                </form>
+                  )
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-bg p-1">
+                      <button
+                        type="button"
+                        onClick={() => { setAuthMode('login'); setUserErr('') }}
+                        className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-xs font-bold transition-all ${
+                          authMode === 'login' ? 'bg-card text-brand shadow-sm' : 'text-mute hover:text-ink'
+                        }`}
+                      >
+                        <LogIn className="h-3.5 w-3.5" /> Masuk
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setAuthMode('register'); setUserErr('') }}
+                        className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-xs font-bold transition-all ${
+                          authMode === 'register' ? 'bg-card text-brand shadow-sm' : 'text-mute hover:text-ink'
+                        }`}
+                      >
+                        <UserPlus className="h-3.5 w-3.5" /> Daftar Baru
+                      </button>
+                    </div>
+
+                    {authMode === 'login' ? (
+                      <form onSubmit={handleLogin} className="space-y-3">
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-mute">ID / Username atau No. HP</label>
+                          <input
+                            className="input"
+                            placeholder="Misal: budi01 atau 0857..."
+                            value={identifier}
+                            onChange={(e) => setIdentifier(e.target.value)}
+                            required
+                            autoFocus
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-mute">PIN Akun</label>
+                          <input
+                            type="password"
+                            inputMode="numeric"
+                            className="input"
+                            placeholder="••••"
+                            value={loginPin}
+                            onChange={(e) => setLoginPin(e.target.value)}
+                            required
+                          />
+                        </div>
+                        {userErr && <p className="text-xs font-bold text-sale">{userErr}</p>}
+                        <button type="submit" disabled={loading} className="btn btn-brand w-full">
+                          <LogIn className="h-4 w-4" /> {loading ? 'Memeriksa...' : 'Masuk'}
+                        </button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleRegister} className="space-y-2.5">
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-mute">ID / Username (unik, tanpa spasi)</label>
+                          <input
+                            className="input lowercase"
+                            placeholder="Misal: budi01"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9._-]/g, ''))}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-mute">Nama lengkap</label>
+                          <input className="input" placeholder="Misal: Budi Santoso" value={name} onChange={(e) => setName(e.target.value)} required />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-mute">No. HP / WhatsApp</label>
+                          <input className="input" placeholder="08xxxxxxxxxx" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-mute">Alamat rumah (opsional)</label>
+                          <input className="input" placeholder="Jl. Melati No. 12, RT 02" value={address} onChange={(e) => setAddress(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-bold text-mute">Buat PIN Akun (min. 4 digit)</label>
+                          <input
+                            type="password"
+                            inputMode="numeric"
+                            className="input"
+                            placeholder="••••"
+                            value={regPin}
+                            onChange={(e) => setRegPin(e.target.value)}
+                            required
+                          />
+                        </div>
+                        {userErr && <p className="text-xs font-bold text-sale">{userErr}</p>}
+                        <button type="submit" disabled={loading} className="btn btn-brand mt-1 w-full">
+                          <UserPlus className="h-4 w-4" /> {loading ? 'Mendaftarkan...' : 'Daftar & Masuk'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )
               ) : role === 'admin' ? (
                 <div className="space-y-4 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/15 text-brand">

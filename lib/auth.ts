@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 export type SessionPayload = {
   role: 'user' | 'admin'
   customerId?: string
+  username?: string
   name?: string
   phone?: string
   address?: string

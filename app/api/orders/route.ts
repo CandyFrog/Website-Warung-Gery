@@ -7,6 +7,10 @@ export async function POST(req: NextRequest) {
   const sb = getSupabaseAdmin()
   if (!sb) return NextResponse.json({ error: 'Supabase not configured' }, { status: 503 })
 
+  if (!session || (!session.customerId && session.role !== 'admin')) {
+    return NextResponse.json({ error: 'Silakan masuk akun pelanggan terlebih dahulu sebelum checkout.' }, { status: 401 })
+  }
+
   const o = await req.json()
   const { data, error } = await sb
     .from('orders')

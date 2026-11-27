@@ -8,6 +8,7 @@ export type Role = 'user' | 'admin'
 
 export type UserProfile = {
   customerId?: string
+  username?: string
   name: string
   phone: string
   address: string
@@ -44,7 +45,9 @@ type StoreState = {
   syncBootstrap: () => Promise<void>
   loginAdmin: (pin: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => Promise<void>
-  loginCustomer: (data: { name: string; phone: string; address: string; pin: string }) => Promise<{ ok: boolean; error?: string }>
+  loginCustomerAccount: (data: { identifier: string; pin: string }) => Promise<{ ok: boolean; error?: string }>
+  registerCustomerAccount: (data: { username: string; name: string; phone: string; address: string; pin: string }) => Promise<{ ok: boolean; error?: string }>
+  updateCustomerProfile: (data: { name: string; address: string }) => Promise<{ ok: boolean; error?: string }>
   setAdminPin: (pin: string) => Promise<void>
   setUserProfile: (profile: Partial<UserProfile>) => void
   addProduct: (p: Omit<Product, 'id'>) => Promise<void>
@@ -113,6 +116,7 @@ export const useStore = create<StoreState>()(
           if (data.session?.customerId || data.session?.phone) {
             nextState.userProfile = {
               customerId: data.session.customerId,
+              username: data.session.username || '',
               name: data.session.name || '',
               phone: data.session.phone || '',
               address: data.session.address || '',
@@ -170,21 +174,53 @@ export const useStore = create<StoreState>()(
         }
       },
 
-      loginCustomer: async ({ name, phone, address, pin }) => {
+      loginCustomerAccount: async ({ identifier, pin }) => {
+        if (!get().cloudEnabled) {
+          return { ok: false, error: 'Login dengan ID butuh koneksi Database Cloud.' }
+        }
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'customer_login', identifier, pin }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) return { ok: false, error: data.error || 'Gagal masuk akun.' }
+        set({ role: 'user', userProfile: data.session })
+        await get().syncBootstrap()
+        return { ok: true }
+      },
+
+      registerCustomerAccount: async ({ username, name, phone, address, pin }) => {
         if (get().cloudEnabled) {
           const res = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'customer_auth', name, phone, address, pin }),
+            body: JSON.stringify({ action: 'customer_register', username, name, phone, address, pin }),
           })
           const data = await res.json().catch(() => ({}))
-          if (!res.ok) return { ok: false, error: data.error || 'Gagal masuk akun.' }
+          if (!res.ok) return { ok: false, error: data.error || 'Gagal mendaftar.' }
           set({ role: 'user', userProfile: data.session })
           await get().syncBootstrap()
           return { ok: true }
         }
 
-        set({ role: 'user', userProfile: { name, phone, address } })
+        set({ role: 'user', userProfile: { username, name, phone, address } })
+        return { ok: true }
+      },
+
+      updateCustomerProfile: async ({ name, address }) => {
+        if (get().cloudEnabled && get().userProfile.customerId) {
+          const res = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'customer_update', name, address }),
+          })
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) return { ok: false, error: data.error || 'Gagal memperbarui profil.' }
+          set({ userProfile: data.session })
+          return { ok: true }
+        }
+        set((s) => ({ userProfile: { ...s.userProfile, name, address } }))
         return { ok: true }
       },
 

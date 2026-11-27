@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS shop_settings (
 -- 4. Tabel Pelanggan (untuk profil & sesi per user)
 CREATE TABLE IF NOT EXISTS customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  username TEXT UNIQUE,
   name TEXT NOT NULL,
   phone TEXT UNIQUE NOT NULL,
   address TEXT NOT NULL DEFAULT '',
